@@ -23,7 +23,7 @@ Observation = np.ndarray
 DEFAULT_WIDTH: float = 4
 
 
-class AbstractEnv(gym.Env):
+class AbstractEnvGoal(gym.Env):
     """
     A generic environment for various tasks involving a vehicle driving on a road.
 
@@ -46,7 +46,7 @@ class AbstractEnv(gym.Env):
             self.config.update(config)
 
         # Seeding
-        self.np_random = None
+        self.np_random = np.random
         self.seed = self.config["seed"]
 
         # Scene
@@ -65,6 +65,7 @@ class AbstractEnv(gym.Env):
         self.steps = 0  # Actions performed
         self.done = False
         self.T = int(self.config["duration"] * self.config["policy_frequency"])
+        self.num_CAV = self.config["controlled_vehicles"]
 
         # Rendering
         self.viewer = None
@@ -81,7 +82,7 @@ class AbstractEnv(gym.Env):
                             'FASTER': 3,
                             'SLOWER': 4}
 
-        self.reset()
+        self.reset(num_CAV=self.num_CAV)
 
     @property
     def vehicle(self) -> Vehicle:
@@ -200,9 +201,10 @@ class AbstractEnv(gym.Env):
                 available_action = self._get_available_actions(self.controlled_vehicles[i], self)
                 for a in available_action:
                     available_actions[i][a] = 1
+            return np.asarray(obs).reshape((len(obs), -1)), np.array(available_actions)
         else:
-            available_actions = [[1] * self.n_a] * len(self.controlled_vehicles)
-        return np.asarray(obs).reshape((len(obs), -1)), np.array(available_actions)
+            # available_actions = [[1] * self.n_a] * len(self.controlled_vehicles)
+            return obs
 
     def _reset(self, num_CAV=1) -> None:
         """
@@ -432,10 +434,10 @@ class AbstractEnv(gym.Env):
         self._simulate(self.new_action)
 
         obs = self.observation_type.observe()
-        reward = self._reward(action)
+        reward = self._reward(action, obs=obs)
         terminal = self._is_terminal()
 
-        # get action masks
+        # get action masks: only useful when using discrete action space
         if self.config["action_masking"]:
             available_actions = [[0] * self.n_a] * len(self.controlled_vehicles)
             for i in range(len(self.controlled_vehicles)):
@@ -450,13 +452,13 @@ class AbstractEnv(gym.Env):
         average_speed = average_speed / len(self.controlled_vehicles)
 
         self.vehicle_speed.append([v.speed for v in self.controlled_vehicles])
-        self.vehicle_pos.append(([v.position[0] for v in self.controlled_vehicles]))
+        self.vehicle_pos.append([v.position for v in self.controlled_vehicles])
         info = {
             "speed": self.vehicle.speed,
             "crashed": self.vehicle.crashed,
             "action": action,
-            "new_action": self.new_action,
-            "action_mask": np.array(available_actions),
+            "new_action": self.new_action,  # for implementing safe guard
+            "action_mask": np.array(available_actions),  # for implementing action mask
             "average_speed": average_speed,
             "vehicle_speed": np.array(self.vehicle_speed),
             "vehicle_position": np.array(self.vehicle_pos)

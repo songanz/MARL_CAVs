@@ -307,9 +307,10 @@ class OccupancyGridObservation(ObservationType):
 
 
 class KinematicsGoalObservation(KinematicObservation):
-    def __init__(self, env: 'AbstractEnv', scales: List[float], **kwargs: dict) -> None:
-        self.scales = np.array(scales)
+    def __init__(self, env: 'AbstractEnv', scale: float, **kwargs: dict) -> None:
         super().__init__(env, **kwargs)
+        self.scale = scale
+        self.goal = None
 
     def space(self) -> spaces.Space:
         try:
@@ -331,11 +332,11 @@ class KinematicsGoalObservation(KinematicObservation):
         }
 
         obs = np.ravel(pd.DataFrame.from_records([self.observer_vehicle.to_dict()])[self.features])
-        goal = np.ravel(pd.DataFrame.from_records([self.env.goal.to_dict()])[self.features])
+        goal = np.ravel(pd.DataFrame.from_records([self.goal.to_dict()])[self.features])
         obs = {
-            "observation": obs / self.scales,
-            "achieved_goal": obs / self.scales,
-            "desired_goal": goal / self.scales
+            "observation": obs / self.scale,
+            "achieved_goal": obs / self.scale,
+            "desired_goal": goal / self.scale
         }
         return obs
 
@@ -369,9 +370,11 @@ class MultiAgentObservation(ObservationType):
         super().__init__(env)
         self.observation_config = observation_config
         self.agents_observation_types = []
-        for vehicle in self.env.controlled_vehicles:
+        for i, vehicle in enumerate(self.env.controlled_vehicles):
             obs_type = observation_factory(self.env, self.observation_config)
             obs_type.observer_vehicle = vehicle
+            if isinstance(obs_type, KinematicsGoalObservation):
+                obs_type.goal = self.env.goals[i]
             self.agents_observation_types.append(obs_type)
 
     def space(self) -> spaces.Space:

@@ -188,7 +188,7 @@ class Vehicle(object):
                 self.speed = other.speed = min([self.speed, other.speed], key=abs)
                 self.crashed = other.crashed = True
         elif isinstance(other, Obstacle):
-            if not self.COLLISIONS_ENABLED:
+            if not (self.COLLISIONS_ENABLED and other.COLLISIONS_ENABLED):
                 return
 
             if self._is_colliding(other):

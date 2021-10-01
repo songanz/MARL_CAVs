@@ -1,3 +1,24 @@
+# Update
+Add multi-agent parking environment
+<p align="center">
+     <img src="docs/parking.png" alt="output_example" width="50%" height="50%">
+     <br>Parking environment
+</p>
+
+You can try this out with:
+```python
+import highway_env
+import gym
+
+env = gym.make("parking-multi-agent-v0")
+
+for _ in range(100):
+
+    obs, reward, terminal, info = env.step(env.action_space.sample())
+    env.render()
+```
+</p>
+
 # Deep Multi-agent Reinforcement Learning for Highway On-Ramp Merging in Mixed Traffic
 
 An on-policy MARL algorithm for highway on-ramp merging problem, which features parameter sharing, action masking, local reward design and a priority-based safety supervisor.

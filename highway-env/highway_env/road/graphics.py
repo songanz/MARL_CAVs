@@ -351,6 +351,9 @@ class RoadObjectGraphics:
             else:
                 color = cls.BLUE
 
+        if getattr(object_, "color", None):
+            color = object_.color
+
         if transparent:
             color = (color[0], color[1], color[2], 30)
 
